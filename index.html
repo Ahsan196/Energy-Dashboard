@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Energy Dashboard | NEDUET Virtual Reality Centre Website</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+	<style >
+		#Ho_ur{
+			margin: 10px 10px 10px 20px;
+          width:40%;
+		}
+
+		#RelHum{
+			margin: 10px 10px 10px 20px;
+          width:40%;
+          
+		}
+		#Pressure{
+			margin: 10px 10px 10px 20px;
+          width:40%;
+		}
+		#Month{
+          margin: 10px 10px 10px 20px;
+          width:40%;
+          
+      }
+	</style>
+	<link rel="stylesheet"  href="./dc.js-3.1.0/dc.css">
+
+</head>
+<body>
+	
+	<h1>Energy Dashboard</h1>
+	<div class="row">
+		<div class="col-md-6">
+		<div id="Ho_ur" >
+		<strong>Hour</strong>
+		<span class="reset" style="display: none;">Selected:<span class="filter"></span></span>
+		<a class="reset" href="javascript:HourChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+		<div class="clearfix"></div>
+		</div>
+		</div>
+			
+		<div class="col-md-5">
+		<div id="Pressure">
+		<strong>Pressure</strong>
+		<span class="reset" style="display: none;">Selected:<span class="filter"></span></span>
+		<a class="reset" href="javascript:PressureChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+		<div class="clearfix"></div>
+
+		</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-md-6">
+		<div id="RelHum">
+		<strong>Relative Humidity</strong>
+		<span class="reset" style="display: none;">Selected:<span class="filter"></span></span>
+		<a class="reset" href="javascript:RelHum.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+		<div class="clearfix"></div>
+		</div>
+		</div>
+
+		<div class="col-md-6">
+		<div id="Month">
+	  	<strong>Month</strong>
+		<span class="reset" style="display: none;">Selected:<span class="filter"></span></span>
+		<a class="reset" href="javascript:monthChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+		<div class="clearfix"></div>
+		</div>
+		</div>
+	</div>
+		
+		<div class="dc-data-count">
+			<span class="filter-count"></span>selected out of <span class="total-count"></span>records | <a href="javascript:dc.filterAll(); dc.renderAll();">ResetAll</a>
+		</div>
+	
+	<div>
+		<table class="table table-hover dc-data-table"></table>
+	</div>
+	
+	<script src="d3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crossfilter2/1.4.6/crossfilter.js"></script>
+	<script src="./dc.js-3.1.0/dc.js"></script>
+	<!--<script src="https://d3js.org/d3-fetch.v1.min.js"></script>-->
+	
+	<script>
+		
+		
+		var HourChart=dc.rowChart("#Ho_ur"),
+		    RelHumChart=dc.rowChart("#RelHum"),
+		    PressureChart=dc.pieChart("#Pressure"),
+		    monthChart=dc.rowChart("#Month"),
+		    viscount=dc.dataCount(".dc-data-count"),
+		    visTable=dc.dataTable(".dc-data-table");
+
+
+
+		d3.csv("GBS.csv").then(function(data) {
+			// body...
+			console.log(data);
+
+			var ndx;
+			ndx=crossfilter(data);
+
+			var all;
+			all=ndx.groupAll();
+			
+			var hourDim;
+			hourDim=ndx.dimension(function(d){
+				return d.Hour || 0;
+			});
+			hourDim.filter(null);
+
+			var RelHumDim;
+			RelHumDim=ndx.dimension(function(d){
+				return d["RelHumidity"] || 0;
+			});
+			RelHumDim.filter(null);
+	
+			var PressureDim;
+			PressureDim=ndx.dimension(function(d){
+				return d["Pressure"] || 0;
+			});
+			PressureDim.filter(null);
+
+			var monthDim;
+			monthDim=ndx.dimension(function(d)
+			{
+				return d["Month"]|| 0;
+			});
+			monthDim.filter(null);
+
+			var hourDimGroup=hourDim.group(),
+ 			 RelHumDimGroup=RelHumDim.group(),
+			 PressureDimGroup=PressureDim.group(),
+			MonthDimGroup=monthDim.group();
+
+			
+			
+			HourChart
+    		.height(400)
+			.dimension(hourDim)
+			.group(hourDimGroup);
+
+			RelHumChart
+    		.height(400)
+			.dimension(RelHumDim)
+			.group(RelHumDimGroup)
+			.data(function(group){
+				return group.top(20);
+			 });
+
+			PressureChart
+			.height(600)
+			.radius(150)
+			.dimension(PressureDim)
+			.group(PressureDimGroup);
+
+			monthChart
+			.height(400)
+            .dimension(monthDim)
+            .group(MonthDimGroup);
+
+			viscount
+			.dimension(ndx)
+			.group(all)
+
+			visTable
+			.height(500)
+			.dimension(monthDim)
+			.group(function(d) { return ""
+			 })
+			.size(data.length)
+			.columns([
+				{
+					label:"Month",
+					format: function(d){return d.Month;}
+			    },
+			    {
+					label:"Hour",
+					format: function(d){return d.Hour;}
+			    },
+			    {
+					label:"Relative Humidity",
+					format: function(d){return d.RelHumidity;}
+			    },
+			    {
+					label:"Pressure",
+					format: function(d){return d.Pressure;}
+			    }
+				])
+			
+			dc.renderAll();
+
+		});
+	</script>
+	
+</body>
+</html>
